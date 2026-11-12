@@ -66,7 +66,9 @@ echo "Summarise the meeting" | 2earl prompts save --title "Meeting summary"
   ([RFC 7009](https://www.rfc-editor.org/rfc/rfc7009)) and deletes the file. You can also
   disconnect the CLI in your account at login.2earl.com.
 - **Calls.** Each command is one MCP JSON-RPC request to the gateway (Streamable HTTP, protocol
-  `2026-07-28`). Answers come as JSON or as an event stream; both are read.
+  `2026-07-28`): the request carries the per-request `_meta` envelope and the `Mcp-Method` and
+  `Mcp-Name` headers the revision requires. Answers come as JSON or as an event stream; both are
+  read. The tests run these requests against the same MCP server library the gateway uses.
 
 For testing against another deployment: `TWOEARL_ISSUER`, `TWOEARL_GATEWAY`, `TWOEARL_CLIENT_ID`,
 `TWOEARL_SCOPE`, `TWOEARL_CREDENTIALS`.

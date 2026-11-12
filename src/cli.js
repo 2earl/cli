@@ -14,7 +14,7 @@ import { OAuthError, deviceSignIn, refresh, revoke } from './oauth.js';
  * against a fake login and gateway.
  */
 
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 
 const HELP = `2earl ${VERSION}: your 2earl account and Prompt share from the terminal.
 
