@@ -3,9 +3,33 @@
  * A minimal MCP client for the 2earl gateway: JSON-RPC over Streamable HTTP, one request per call.
  * The gateway is stateless (MCP 2026-07-28), so there is no session to set up; answers come as
  * JSON or as a short event stream, and both are read here.
+ *
+ * Revision 2026-07-28 (SEP-2243) asks every request to carry:
+ * - an envelope in `params._meta`: the protocol version and the client's capabilities;
+ * - the headers `MCP-Protocol-Version` and `Mcp-Method`, and for `tools/call` also `Mcp-Name`
+ *   (the tool's name), which servers check against the body.
  */
 
 export const PROTOCOL_VERSION = '2026-07-28';
+export const CLIENT_INFO = { name: '2earl-cli', version: '0.1.1' };
+
+/** Methods whose `Mcp-Name` header mirrors a field of `params`. */
+const NAME_FIELD = /** @type {Record<string, string>} */ ({
+  'tools/call': 'name',
+  'prompts/get': 'name',
+  'resources/read': 'uri',
+});
+
+/**
+ * A header value as the spec encodes it: printable ASCII as is, anything else (or leading and
+ * trailing spaces) as `=?base64?…?=` of its UTF-8.
+ * @param {string} value
+ */
+export function headerValue(value) {
+  const plain = value.length > 0 && value === value.trim() && /^[\t\x20-\x7e]*$/.test(value);
+  if (plain && !(value.startsWith('=?base64?') && value.endsWith('?='))) return value;
+  return `=?base64?${Buffer.from(value, 'utf8').toString('base64')}?=`;
+}
 
 export class McpError extends Error {
   /**
@@ -55,16 +79,31 @@ async function readMessage(response) {
  * @returns {Promise<unknown>}
  */
 export async function rpc({ url, accessToken, method, params = {}, fetchImpl = fetch }) {
-  const response = await fetchImpl(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'Content-Type': 'application/json',
-      Accept: 'application/json, text/event-stream',
-      'MCP-Protocol-Version': PROTOCOL_VERSION,
+  /** @type {Record<string, string>} */
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+    Accept: 'application/json, text/event-stream',
+    'MCP-Protocol-Version': PROTOCOL_VERSION,
+    'Mcp-Method': method,
+  };
+  const nameField = NAME_FIELD[method];
+  const name = nameField ? params[nameField] : undefined;
+  if (typeof name === 'string') headers['Mcp-Name'] = headerValue(name);
+  const body = {
+    jsonrpc: '2.0',
+    id: nextId++,
+    method,
+    params: {
+      ...params,
+      _meta: {
+        'io.modelcontextprotocol/protocolVersion': PROTOCOL_VERSION,
+        'io.modelcontextprotocol/clientCapabilities': {},
+        'io.modelcontextprotocol/clientInfo': CLIENT_INFO,
+      },
     },
-    body: JSON.stringify({ jsonrpc: '2.0', id: nextId++, method, params }),
-  });
+  };
+  const response = await fetchImpl(url, { method: 'POST', headers, body: JSON.stringify(body) });
   if (response.status === 401 || response.status === 403) {
     throw new McpError(
       response.status === 401 ? 'Not signed in, or the sign-in expired' : 'Not allowed',
@@ -73,8 +112,17 @@ export async function rpc({ url, accessToken, method, params = {}, fetchImpl = f
   }
   if (response.status === 429)
     throw new McpError('Too many requests. Wait a minute.', { status: 429 });
-  if (!response.ok)
-    throw new McpError(`The gateway answered HTTP ${response.status}`, { status: response.status });
+  if (!response.ok) {
+    // The gateway explains a refused request in a JSON-RPC error: show that, not just the status.
+    const explained = await readMessage(response).catch(() => null);
+    const error = /** @type {{ message?: unknown } | undefined} */ (explained?.error);
+    throw new McpError(
+      typeof error?.message === 'string'
+        ? `The gateway refused the request: ${error.message}`
+        : `The gateway answered HTTP ${response.status}`,
+      { status: response.status },
+    );
+  }
   const message = await readMessage(response);
   if (message.error && typeof message.error === 'object') {
     const error = /** @type {{ message?: unknown }} */ (message.error);

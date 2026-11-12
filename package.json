@@ -1,6 +1,6 @@
 {
   "name": "@2earl/cli",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Command-line tool for 2earl: sign in with a code, use Prompt share from the terminal.",
   "license": "AGPL-3.0-only",
   "type": "module",
@@ -27,6 +27,7 @@
     "lint": "prettier --check ."
   },
   "devDependencies": {
+    "@modelcontextprotocol/server": "2.4.0",
     "@types/node": "^22.10.0",
     "prettier": "^3.4.0",
     "typescript": "^5.7.0"
