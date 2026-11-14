@@ -43,3 +43,6 @@ jobs:
 
       - name: Runs as a command
         run: node bin/2earl.js --version
+
+      - name: Audit dependencies
+        run: npm audit --omit=dev --audit-level=high

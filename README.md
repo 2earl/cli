@@ -6,7 +6,8 @@ Your 2earl account and [Prompt share](https://promptshare.cc) from the terminal.
 npx github:2earl/cli login
 ```
 
-Node.js 20 or newer. No dependencies at run time.
+Node.js 20 or newer. No dependencies at run time. The repository is private, so this needs access
+to `2earl/cli` on GitHub.
 
 ## Sign in
 
@@ -84,4 +85,4 @@ npm run lint      # prettier
 
 ## License
 
-[AGPL-3.0](LICENSE), like the rest of 2earl.
+Proprietary. All rights reserved; see [LICENSE](LICENSE).

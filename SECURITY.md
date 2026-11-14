@@ -1,16 +1,24 @@
 # Security Policy
 
-This repository contains the 2earl command-line tool. It signs in to login.2earl.com and keeps a
-refresh token on your computer. Please do **not** report security vulnerabilities through public
-issues, discussions or pull requests.
+This repository contains the 2earl command-line tool. It is private and proprietary.
 
 ## Reporting a vulnerability
 
-Use GitHub's private vulnerability reporting: **Security → Report a vulnerability** on this
-repository. Include what is affected, how to reproduce it, and the impact you believe it has.
+Write to **legal@2earl.com** with "Security" in the subject. The same contact is published at
+<https://2earl.com/.well-known/security.txt>. Please don't disclose it before it's fixed.
+
+Include as much of the following as you can:
+
+- affected endpoint, flow or component
+- steps to reproduce or a proof of concept
+- impact you believe it has
+
+You will receive an acknowledgement after the report is reviewed.
 
 ## Scope
 
-In scope: the code in this repository. Findings in login.2earl.com or mcp.2earl.com go to
-[2earl/login](https://github.com/2earl/login/security) and
-[2earl/mcp](https://github.com/2earl/mcp/security).
+In scope: the code in this repository. Findings in login.2earl.com or mcp.2earl.com go to the
+same address.
+
+Out of scope: denial-of-service through volumetric traffic, social engineering, and findings in
+third-party services (Google, Cloudflare, GitHub).
