@@ -6,8 +6,7 @@ Your 2earl account and [Prompt share](https://promptshare.cc) from the terminal.
 npx github:2earl/cli login
 ```
 
-Node.js 20 or newer. No dependencies at run time. The repository is private, so this needs access
-to `2earl/cli` on GitHub.
+Node.js 20 or newer. No dependencies at run time.
 
 ## Sign in
 
