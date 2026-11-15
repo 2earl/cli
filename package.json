@@ -2,7 +2,7 @@
   "name": "@2earl/cli",
   "version": "0.1.1",
   "description": "Command-line tool for 2earl: sign in with a code, use Prompt share from the terminal.",
-  "license": "AGPL-3.0-only",
+  "license": "UNLICENSED",
   "type": "module",
   "bin": {
     "2earl": "bin/2earl.js"
@@ -20,7 +20,6 @@
     "type": "git",
     "url": "git+https://github.com/2earl/cli.git"
   },
-  "homepage": "https://github.com/2earl/cli#readme",
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc --noEmit",
