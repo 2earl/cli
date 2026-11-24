@@ -1,11 +1,18 @@
+// @ts-check
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { run } from '../src/cli.js';
 import { localeFrom, translate, withLanguage } from '../src/i18n.js';
 
-/** Runs the CLI with a fake terminal and the given environment. */
+/**
+ * Runs the CLI with a fake terminal and the given environment.
+ * @param {string[]} argv
+ * @param {Record<string, string>} env
+ */
 async function cli(argv, env) {
+  /** @type {string[]} */
   const out = [];
+  /** @type {string[]} */
   const err = [];
   const code = await run(argv, {
     env: { XDG_CONFIG_HOME: '/nonexistent', ...env },
