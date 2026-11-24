@@ -53,6 +53,12 @@ echo "Summarise the meeting" | 2earl prompts save --title "Meeting summary"
 2earl call promptshare__search_prompts '{"query":"review","scope":"mine"}' --json | jq .
 ```
 
+## Language
+
+The CLI speaks English and Turkish. It follows your terminal's locale (`LC_ALL`, `LC_MESSAGES`,
+`LANG`, e.g. `tr_TR.UTF-8`); set `TWOEARL_LANG=en` or `TWOEARL_LANG=tr` to choose. The sign-in
+page opens in the same language. Tool output is shown as the gateway sends it.
+
 ## How it works
 
 - **Sign-in.** The CLI is a public OAuth client. Its client ID is a

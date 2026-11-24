@@ -8,6 +8,7 @@ import {
 } from './config.js';
 import { McpError, callTool, listTools } from './mcp.js';
 import { OAuthError, deviceSignIn, refresh, revoke } from './oauth.js';
+import { localeFrom, translate, withLanguage } from './i18n.js';
 
 /**
  * The `2earl` command. Everything it needs from the outside comes in `io`, so tests can run it
@@ -41,6 +42,33 @@ Options
 
 Your sign-in is kept in ~/.config/2earl/credentials.json (readable by you only).
 Source and issues: https://github.com/2earl/cli`;
+
+const HELP_TR = `2earl ${VERSION}: 2earl hesabınız ve Prompt share, terminalden.
+
+Kullanım
+  2earl login                 Giriş yapın: gösterilen bağlantıyı açın, kodu denetleyin, onaylayın
+  2earl logout                Buradan çıkış yapın ve bu cihazın erişimini iptal edin
+  2earl whoami                Kim olarak giriş yaptığınız
+
+  2earl prompts search [kelimeler] [--scope mine|shared|public|all]
+  2earl prompts get <kimlik> [--fill ad=değer ...]
+  2earl prompts save --title <başlık> [--description <metin>] [--file <yol>]
+                              Prompt’un metni --file’dan ya da standart girdiden gelir
+  2earl sessions list
+  2earl sessions load <kimlik ya da başlık> [--since brief]
+  2earl sessions note <kimlik ya da başlık> <metin> [--kind note|decision|question|task|summary]
+
+  2earl tools                 Ağ geçidinin size sunduğu her araç
+  2earl call <araç> [json]    Herhangi bir aracı JSON argümanlarıyla çağırın
+
+Seçenekler
+  --json                      Ağ geçidinin yanıtını olduğu gibi yazdırır
+  -h, --help                  Bu yardım
+  -v, --version               Sürüm
+
+Dil: TWOEARL_LANG, LC_ALL ya da LANG (ör. tr_TR.UTF-8). İngilizce için TWOEARL_LANG=en.
+Girişiniz ~/.config/2earl/credentials.json dosyasında tutulur (yalnızca siz okuyabilirsiniz).
+Kaynak ve sorunlar: https://github.com/2earl/cli`;
 
 /**
  * @typedef {object} IO
@@ -81,9 +109,16 @@ export class UsageError extends Error {}
 /**
  * Runs one command; returns the exit code.
  * @param {string[]} argv
- * @param {IO} io
+ * @param {IO} outerIo
  */
-export async function run(argv, io) {
+export async function run(argv, outerIo) {
+  const locale = localeFrom(outerIo.env);
+  // Our own messages go through the table; tool output is printed with outerIo.out as it is.
+  const io = {
+    ...outerIo,
+    err: (/** @type {string} */ text) => outerIo.err(translate(text, locale)),
+  };
+  const say = (/** @type {string} */ text) => outerIo.out(translate(text, locale));
   const { positional, options } = parseArgs(argv);
   const json = options.json !== undefined;
   const settings = readSettings(io.env);
@@ -96,7 +131,7 @@ export async function run(argv, io) {
     return 0;
   }
   if (options.help || !command || command === 'help') {
-    io.out(HELP);
+    io.out(locale === 'tr' ? HELP_TR : HELP);
     return command && command !== 'help' ? 1 : 0;
   }
 
@@ -147,16 +182,19 @@ export async function run(argv, io) {
           now,
           ...(io.sleep ? { sleep: io.sleep } : {}),
           show: (start) => {
-            io.err(
+            const t = (/** @type {string} */ text) => translate(text, locale);
+            outerIo.err(
               [
                 '',
-                `  Open   ${start.verification_uri}`,
-                `  Code   ${start.user_code}`,
+                t(`  Open   ${withLanguage(start.verification_uri, locale)}`),
+                t(`  Code   ${start.user_code}`),
                 '',
                 start.verification_uri_complete
-                  ? `  Or open ${start.verification_uri_complete} and check the code matches.`
+                  ? t(
+                      `  Or open ${withLanguage(start.verification_uri_complete, locale)} and check the code matches.`,
+                    )
                   : '',
-                '  Waiting for you to approve…',
+                t('  Waiting for you to approve…'),
               ]
                 .filter((line, index, all) => line !== '' || all[index - 1] !== '')
                 .join('\n'),
@@ -190,7 +228,7 @@ export async function run(argv, io) {
 
       case 'whoami': {
         const { text } = await tool('whoami');
-        print(json ? text : describeWhoami(text));
+        print(json ? text : describeWhoami(text, locale));
         return 0;
       }
 
@@ -224,7 +262,7 @@ export async function run(argv, io) {
             ...(rest.length ? { query: rest.join(' ') } : {}),
             scope: options.scope?.[0] ?? 'all',
           });
-          print(json ? text : listing(text, ['id', 'title']));
+          print(json ? text : listing(text, ['id', 'title'], locale));
           return 0;
         }
         if (sub === 'get') {
@@ -258,7 +296,8 @@ export async function run(argv, io) {
             body,
             ...(options.description?.[0] ? { description: options.description[0] } : {}),
           });
-          print(json ? text : `Saved: ${field(text, 'id') ?? 'done'}`);
+          if (json) print(text);
+          else say(`Saved: ${field(text, 'id') ?? 'done'}`);
           return 0;
         }
         throw new UsageError('Usage: 2earl prompts search|get|save …');
@@ -267,7 +306,7 @@ export async function run(argv, io) {
       case 'sessions': {
         if (sub === 'list') {
           const { text } = await tool('promptshare__list_sessions');
-          print(json ? text : listing(text, ['id', 'title']));
+          print(json ? text : listing(text, ['id', 'title'], locale));
           return 0;
         }
         if (sub === 'load') {
@@ -290,7 +329,8 @@ export async function run(argv, io) {
             text: words.join(' '),
             kind: options.kind?.[0] ?? 'note',
           });
-          print(json ? text : 'Saved to the session.');
+          if (json) print(text);
+          else say('Saved to the session.');
           return 0;
         }
         throw new UsageError('Usage: 2earl sessions list|load|note …');
@@ -384,7 +424,7 @@ function field(text, name) {
  * @param {string} text
  * @param {string[]} columns
  */
-function listing(text, columns) {
+function listing(text, columns, /** @type {import('./i18n.js').Locale} */ locale = 'en') {
   const value = tryJson(text);
   const rows = Array.isArray(value)
     ? value
@@ -392,7 +432,7 @@ function listing(text, columns) {
       ? Object.values(value).find(Array.isArray)
       : undefined;
   if (!Array.isArray(rows)) return text;
-  if (rows.length === 0) return 'Nothing yet.';
+  if (rows.length === 0) return translate('Nothing yet.', locale);
   const lines = rows.map((row) =>
     columns.map((c) => String(/** @type {Record<string, unknown>} */ (row)?.[c] ?? '')),
   );
@@ -403,13 +443,14 @@ function listing(text, columns) {
 }
 
 /** @param {string} text */
-function describeWhoami(text) {
+function describeWhoami(text, /** @type {import('./i18n.js').Locale} */ locale = 'en') {
   const value = tryJson(text);
   if (!value || typeof value !== 'object') return text;
   const me = /** @type {{ account?: unknown, app?: unknown, permissions?: unknown }} */ (value);
+  const t = (/** @type {string} */ line) => translate(line, locale);
   return [
-    `Account      ${String(me.account ?? 'unknown')}`,
-    `App          ${String(me.app ?? 'unknown')}`,
-    `Permissions  ${Array.isArray(me.permissions) ? me.permissions.join(', ') : 'none'}`,
+    t(`Account      ${String(me.account ?? 'unknown')}`),
+    t(`App          ${String(me.app ?? 'unknown')}`),
+    t(`Permissions  ${Array.isArray(me.permissions) ? me.permissions.join(', ') : 'none'}`),
   ].join('\n');
 }
