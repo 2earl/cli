@@ -10,8 +10,10 @@
  *   (the tool's name), which servers check against the body.
  */
 
+import { VERSION } from './version.js';
+
 export const PROTOCOL_VERSION = '2026-07-28';
-export const CLIENT_INFO = { name: '2earl-cli', version: '0.1.1' };
+export const CLIENT_INFO = { name: '2earl-cli', version: VERSION };
 
 /** Methods whose `Mcp-Name` header mirrors a field of `params`. */
 const NAME_FIELD = /** @type {Record<string, string>} */ ({

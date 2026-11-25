@@ -1,6 +1,6 @@
 {
   "name": "@2earl/cli",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Command-line tool for 2earl: sign in with a code, use Prompt share from the terminal.",
   "license": "UNLICENSED",
   "type": "module",
@@ -11,6 +11,7 @@
     "bin",
     "src",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
