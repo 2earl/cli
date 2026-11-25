@@ -1,7 +1,8 @@
 # Changelog
 
-Each version below is tagged `v<version>` and has a GitHub release with an installable package.
-A version reaches users when its bump is merged to `main`; the release workflow tags it then.
+From 0.2.0 on, each version is tagged `v<version>` and has a GitHub release with an installable
+package. A version reaches users when its bump is merged to `main`; the release workflow tags it
+then.
 
 ## 0.2.0 (2026-11-25)
 
