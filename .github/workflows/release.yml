@@ -1,0 +1,103 @@
+name: release
+
+# When a version bump lands on main, tag it and publish a GitHub release with the packed CLI.
+# A version that is already tagged is left alone, so every other push to main does nothing.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the version
+        id: version
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::package.json version '$version' is not MAJOR.MINOR.PATCH"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/v$version" > /dev/null 2>&1; then
+            echo "v$version is already released."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: steps.version.outputs.new == 'true'
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Verify
+        if: steps.version.outputs.new == 'true'
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          test "$(node bin/2earl.js --version)" = "${{ steps.version.outputs.version }}"
+
+      - name: Pack
+        if: steps.version.outputs.new == 'true'
+        run: |
+          npm pack --silent > packed.txt
+          tarball="$(cat packed.txt)"
+          sha256sum "$tarball" > "$tarball.sha256"
+          echo "tarball=$tarball" >> "$GITHUB_ENV"
+
+      - name: Notes from the changelog
+        if: steps.version.outputs.new == 'true'
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          awk -v v="$version" '
+            $0 ~ "^## " v " " { on = 1; next }
+            on && /^## / { exit }
+            on { print }
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "::error::CHANGELOG.md has no section for $version"
+            exit 1
+          fi
+          {
+            echo
+            echo '### Install'
+            echo
+            echo '```sh'
+            echo "npx github:2earl/cli#v$version login"
+            echo "npm install -g https://github.com/$GITHUB_REPOSITORY/releases/download/v$version/$tarball"
+            echo '```'
+          } >> notes.md
+
+      - name: Publish the release
+        if: steps.version.outputs.new == 'true'
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          gh release create "v$version" "$tarball" "$tarball.sha256" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "2earl CLI $version" \
+            --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}

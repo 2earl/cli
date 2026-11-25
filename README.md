@@ -8,6 +8,10 @@ npx github:2earl/cli login
 
 Node.js 20 or newer. No dependencies at run time.
 
+To stay on one version, name its tag (`npx github:2earl/cli#v0.2.0 login`), or install the package
+from a [release](https://github.com/2earl/cli/releases) with `npm install -g <the .tgz link>`.
+What changed is in [CHANGELOG.md](CHANGELOG.md).
+
 ## Sign in
 
 ```sh

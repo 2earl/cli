@@ -9,13 +9,14 @@ import {
 import { McpError, callTool, listTools } from './mcp.js';
 import { OAuthError, deviceSignIn, refresh, revoke } from './oauth.js';
 import { localeFrom, translate, withLanguage } from './i18n.js';
+import { VERSION } from './version.js';
 
 /**
  * The `2earl` command. Everything it needs from the outside comes in `io`, so tests can run it
  * against a fake login and gateway.
  */
 
-export const VERSION = '0.1.1';
+export { VERSION };
 
 const HELP = `2earl ${VERSION}: your 2earl account and Prompt share from the terminal.
 
